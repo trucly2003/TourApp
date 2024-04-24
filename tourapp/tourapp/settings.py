@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'tours.apps.ToursConfig',
+    'ckeditor',
+    'ckeditor_uploader'
 ]
 
 import pymysql
@@ -132,3 +134,4 @@ STATIC_URL = 'static/'
 #DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_ROOT = '%s/tours/static/' % BASE_DIR
+CKEDITOR_UPLOAD_PATH = "ckeditor/images/"

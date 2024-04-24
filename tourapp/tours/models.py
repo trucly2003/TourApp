@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django import forms
+from ckeditor.fields import RichTextField
+
+
 
 class User(AbstractUser):
  pass
@@ -23,7 +26,7 @@ class Category(BaseModel):
 
 class Tour(BaseModel):
     name = models.CharField(max_length=50, null=False)
-    description = models.TextField()
+    description = RichTextField()
     image = models.ImageField(upload_to='tours/name')
     price_kid = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     price_adult = models.DecimalField(max_digits=10, decimal_places=2, null=True)
@@ -41,18 +44,18 @@ class Tour(BaseModel):
 
 class Place(BaseModel):
     name = models.CharField(max_length=50, null=False)
-    description = models.TextField()
+    description = RichTextField()
     image = models.ImageField(upload_to='tour/name')
 
     def __str__(self):
         return self.name
 
 
-#class ticket(BaseModel):
-#   price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
-#   datetime_arrive = forms.DateTimeField()
-#   datetime_depart = forms.DateTimeField()
+class Ticket(BaseModel):
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
 
+    def __str__(self):
+        return self.price
 
 
 
