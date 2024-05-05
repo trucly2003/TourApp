@@ -1,12 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django import forms
 from ckeditor.fields import RichTextField
-
+from django import forms
+#from cloudinary.models import CloudinaryField
 
 
 class User(AbstractUser):
- pass
+    is_active = models.BooleanField(default=True)
+    #avatar = CloudinaryField('avatar')
 
 
 class BaseModel(models.Model):
@@ -24,40 +25,62 @@ class Category(BaseModel):
         return self.name
 
 
-class Tour(BaseModel):
+class Place(BaseModel):
     name = models.CharField(max_length=50, null=False)
     description = RichTextField()
-    image = models.ImageField(upload_to='tours/name')
+    image = models.ImageField(upload_to='Place/name')
+
+    def __str__(self):
+        return self.name
+
+class Tour(BaseModel):
+    category = models.ForeignKey(Category, on_delete=models.RESTRICT, null=True)
+    name = models.CharField(max_length=50, null=False)
+    description = RichTextField()
+    image = models.ImageField(upload_to='Tours/name')
     price_kid = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     price_adult = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     tour_service = models.TextField(null=True)
-    category = models.ForeignKey(Category, on_delete=models.RESTRICT, null=True)
-    place = models.ManyToManyField('Place')
-   # date_arrive = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-   # date_depart = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    place = models.ManyToManyField('Place', related_name='places_tours')
+    arrival = models.CharField(max_length=50, null=True)
+    department = models.CharField(max_length=50, null=True)
+
 
     def __str__(self):
        return self.name
 
 
-
-
-class Place(BaseModel):
-    name = models.CharField(max_length=50, null=False)
-    description = RichTextField()
-    image = models.ImageField(upload_to='tour/name')
+class News(BaseModel):
+    title = models.CharField(max_length=255, null=True)
+    content = RichTextField()
+    author = models.ForeignKey('User', on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.name
+        return self.title
 
 
 class Ticket(BaseModel):
+    OPTIONS_CHOICES = (
+        ('A', 'Vé người lớn'),
+        ('B', 'Vé trẻ em'),
+    )
+    option = models.CharField(max_length=1, choices=OPTIONS_CHOICES, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    category = models.ForeignKey(Category, on_delete=models.RESTRICT, null=True)
+    tour = models.ForeignKey(Tour, on_delete=models.CASCADE, null=True)
+    date_arrive = models.DateField(null=True)
+    date_depart = models.DateField(null=True)
+    user = models.ForeignKey('User', on_delete=models.CASCADE, null=True)
+    booking_date = models.DateField(null=True)
 
     def __str__(self):
-        return self.price
+        return str(self.id)
 
 
+class Payment(BaseModel):
+    ticket = models.OneToOneField('Ticket', on_delete=models.CASCADE)
+    payment_method = models.CharField(max_length=255)
+    payment_dated = models.DateTimeField(auto_now=True)
 
-
-
+    def __str__(self):
+        return str(self.id)
