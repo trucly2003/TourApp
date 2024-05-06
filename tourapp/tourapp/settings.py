@@ -45,6 +45,14 @@ INSTALLED_APPS = [
     'cloudinary',
 ]
 
+import cloudinary
+
+cloudinary.config(
+    cloud_name="dodo9rlbi",
+    api_key="499936591477531",
+    api_secret="RcbpgEb6mxsJWLAkkBWSqsqKgEA"
+)
+
 import pymysql
 pymysql.install_as_MySQLdb()
 

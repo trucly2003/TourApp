@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Tour, Ticket, Place
+from .models import Category, Tour, Ticket, Place, New
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django.utils.html import mark_safe
 from django import forms
@@ -23,6 +23,15 @@ class TourAppAdminSite(admin.AdminSite):
 
 
 admin_site = TourAppAdminSite(name='Trang quản lý du lịch')
+
+
+class NewForm(forms.ModelForm):
+    content = forms.CharField(widget=CKEditorUploadingWidget)
+
+    class Meta:
+        model = New
+        fields = '__all__'
+
 
 
 class TourForm(forms.ModelForm):
@@ -88,8 +97,14 @@ class TicketForm(forms.ModelForm):
 class TicketAdmin(admin.ModelAdmin):
     form = TicketForm
 
+
+class NewAdmin(admin.ModelAdmin):
+    form = NewForm
+
+
 # Register your models here.
 admin_site.register(Category, CategoryAdmin)
 admin_site.register(Tour, TourAdmin)
 admin_site.register(Place, PlaceAdmin)
 admin_site.register(Ticket, TicketAdmin)
+admin_site.register(New, NewAdmin)

@@ -2,12 +2,12 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from ckeditor.fields import RichTextField
 from django import forms
-#from cloudinary.models import CloudinaryField
+from cloudinary.models import CloudinaryField
 
 
 class User(AbstractUser):
-    is_active = models.BooleanField(default=True)
-    #avatar = CloudinaryField('avatar')
+    avatar = CloudinaryField('avatar', null=True)
+
 
 
 class BaseModel(models.Model):
@@ -50,7 +50,7 @@ class Tour(BaseModel):
        return self.name
 
 
-class News(BaseModel):
+class New(BaseModel):
     title = models.CharField(max_length=255, null=True)
     content = RichTextField()
     author = models.ForeignKey('User', on_delete=models.CASCADE)
