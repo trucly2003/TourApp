@@ -8,7 +8,6 @@ from  rest_framework.decorators import action
 
 
 
-# Create your views here.
 class CategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -37,7 +36,8 @@ class TourViewSet(viewsets.ViewSet, generics.ListAPIView):
                 status=status.HTTP_200_OK)
 
 
-class PlaceViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
+
+class PlaceViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Place.objects.filter(active=True).all()
     serializer_class = PlaceSerializer
 
@@ -46,3 +46,8 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True).all()
     serializer_class = UserSerializer
     parser_classes = [parsers.MultiPartParser]
+
+
+class TourDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
+    queryset = Tour.objects.filter(active=True).all()
+    serializer_class = TourSerializer

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'cloudinary',
+    'oauth2_provider',
 ]
 
 import cloudinary
@@ -55,6 +56,14 @@ cloudinary.config(
 
 import pymysql
 pymysql.install_as_MySQLdb()
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+)
+}
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -146,3 +155,6 @@ STATIC_URL = 'static/'
 
 MEDIA_ROOT = '%s/tours/static/' % BASE_DIR
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
+
+CLIENT_ID = '59vdNuuNCbpSTkRb2gDe6Erzt2pCK0bxERGADFfV'
+CLIENT_SECRET = 'xxkqon6Soso2uUhTdEespgbJEC8sd5Vkamh1TVRKjb597OXMZuvEBRBLyaSMW3p87vIAI6VZpETBYSxGKHAq6Lr6IG1SdZM5q2d9wYMiFWYMemUrVuo9j9zR4x3ryc41'
