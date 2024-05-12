@@ -153,8 +153,19 @@ STATIC_URL = 'static/'
 
 #DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-MEDIA_ROOT = '%s/tours/static/' % BASE_DIR
+# MEDIA_ROOT = '%s/tours/static/' % BASE_DIR
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
 
-CLIENT_ID = '59vdNuuNCbpSTkRb2gDe6Erzt2pCK0bxERGADFfV'
-CLIENT_SECRET = 'xxkqon6Soso2uUhTdEespgbJEC8sd5Vkamh1TVRKjb597OXMZuvEBRBLyaSMW3p87vIAI6VZpETBYSxGKHAq6Lr6IG1SdZM5q2d9wYMiFWYMemUrVuo9j9zR4x3ryc41'
+CLIENT_ID = 'FrqpJ92OuifjjNw51E3zoqFkytxKlEtYv9Dga3wH'
+CLIENT_SECRET = 'XR74VNODyTR5ays4CQ6Fd5t90b2hlnqgzhexyo8yzJzJYzNGHVeTXael6w4eeadxjfX8KPcER3Kv6cOJIclGWN8YWLlqReOV0xK1CPYryCVdlEMVihT0CuRJyNiIBuB1'
+
+OAUTH2_PROVIDER = {
+    'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'
+}
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_PARSER_CLASSES': [
+#         'rest_framework.parsers.JSONParser',
+#     ]
+# }
+

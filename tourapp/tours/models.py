@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group
 from ckeditor.fields import RichTextField
 from django import forms
 from cloudinary.models import CloudinaryField
@@ -7,6 +7,26 @@ from cloudinary.models import CloudinaryField
 
 class User(AbstractUser):
     avatar = CloudinaryField('avatar', null=True)
+    USER_ROLES = (
+        ('admin', 'Admin'),
+        ('staff', 'Staff'),
+        ('customer', 'Customer')
+    )
+
+    role = models.CharField(max_length=20, choices=USER_ROLES, null=True)
+
+
+
+class Customer(User):
+    pass
+
+
+class Admin(User):
+    pass
+
+
+class Staff(User):
+    birth = models.DateField(null=True)
 
 
 
@@ -28,7 +48,7 @@ class Category(BaseModel):
 class Place(BaseModel):
     name = models.CharField(max_length=50, null=False)
     description = RichTextField()
-    image = models.ImageField(upload_to='Place/name')
+    image = CloudinaryField('imagesOfPlace', null=True)
 
     def __str__(self):
         return self.name
@@ -37,13 +57,13 @@ class Tour(BaseModel):
     category = models.ForeignKey(Category, on_delete=models.RESTRICT, null=True)
     name = models.CharField(max_length=50, null=False)
     description = RichTextField()
-    image = models.ImageField(upload_to='Tours/name')
+    image = CloudinaryField('imagesOfTour', null=True)
     price_kid = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     price_adult = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     tour_service = models.TextField(null=True)
     place = models.ManyToManyField('Place', related_name='places_tours')
     arrival = models.CharField(max_length=50, null=True)
-    department = models.CharField(max_length=50, null=True)
+    departure = models.CharField(max_length=50, null=True)
 
 
     def __str__(self):
@@ -53,7 +73,6 @@ class Tour(BaseModel):
 class New(BaseModel):
     title = models.CharField(max_length=255, null=True)
     content = RichTextField()
-    author = models.ForeignKey('User', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.title
@@ -84,3 +103,33 @@ class Payment(BaseModel):
 
     def __str__(self):
         return str(self.id)
+
+
+class Interaction(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE,null=False)
+
+    class Meta:
+        abstract = True
+
+
+class CommentInTour(Interaction):
+    tour = models.ForeignKey(Tour, on_delete=models.CASCADE,null=False)
+    content = models.CharField(max_length=255,null=False)
+
+class Rating(Interaction):
+    tour = models.ForeignKey(Tour, on_delete=models.CASCADE,null=False)
+    rate = models.SmallIntegerField(default=0)
+
+
+class CommentInNew(Interaction):
+    new = models.ForeignKey(New, on_delete=models.CASCADE,null=False)
+    content = models.CharField(max_length=255, null=False)
+
+
+class Like(Interaction):
+    new = models.ForeignKey(New, on_delete=models.CASCADE,null=False)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('user', 'new')
+

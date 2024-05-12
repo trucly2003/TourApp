@@ -1,10 +1,11 @@
 from django.contrib import admin
-from .models import Category, Tour, Ticket, Place, New
+from .models import Category, Tour, Ticket, Place, New, User
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django.utils.html import mark_safe
 from django import forms
 from django.urls import path
 from django.template.response import TemplateResponse
+from django.contrib.auth.hashers import make_password
 
 
 
@@ -50,22 +51,28 @@ class PlaceForm(forms.ModelForm):
         model = Place
         fields = '__all__'
 
+
+class UserForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'password', 'first_name', 'last_name', 'is_active',
+                  'is_staff', 'avatar', 'role']
+
 class PlaceAdmin(admin.ModelAdmin):
     search_fields = ['name']
     form = PlaceForm
-    readonly_fields = ['img']
-
-    def img(self, Place):
-        if(Place):
-            return mark_safe(
-                '<img src="/static/{url}" width="120" />' \
-                    .format(url=Place.image.name)
-           )
 
 
 class CategoryAdmin(admin.ModelAdmin):
     search_fields = ['name']
 
+
+class UserAdmin(admin.ModelAdmin):
+    form = UserForm
+
+    def password(self, request, obj, form, change):
+        obj.password = make_password(obj.password)
+        super().save_model(request, obj, form, change)
 
 
 class PlaceInline(admin.TabularInline):
@@ -76,15 +83,7 @@ class TourAdmin(admin.ModelAdmin):
     search_fields = ['name']
     form = TourForm
     list_display = ['pk','name','category']
-    readonly_fields = ['img']
     inlines = [PlaceInline]
-
-    def img(self, tour):
-        if (tour):
-            return mark_safe(
-                '<img src="/static/{url}" width="120" />' \
-                    .format(url=tour.image.name)
-            )
 
 
 class TicketForm(forms.ModelForm):
@@ -108,3 +107,4 @@ admin_site.register(Tour, TourAdmin)
 admin_site.register(Place, PlaceAdmin)
 admin_site.register(Ticket, TicketAdmin)
 admin_site.register(New, NewAdmin)
+admin_site.register(User, UserAdmin)
