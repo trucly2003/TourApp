@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from rest_framework import viewsets, generics, status, parsers, permissions, serializers
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from .models import Category, Place, Tour, Rating, Ticket, User, CommentInTour, New, Like, Staff, CommentInNew, Booking
+from .models import Category, Place, Tour, Rating, Ticket, User, CommentInTour, New, Like, Customer, CommentInNew, Booking
 from .serializers import (CategorySerializer, TourSerializer, PlaceSerializer, UserSerializer,
                           CommentInTourSerializer, CommentInNewSerializer, RateSerializer, BookingSerializer,
                           NewSerializer, StaffSerializer, CustomerSerializer, NewDetailSerializer)
@@ -52,9 +53,55 @@ class TourDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
-        if self.action in ['add_comment', 'rate']:
+        if self.action in ['add_comment', 'rate', 'book_tour']:
             return [permissions.IsAuthenticated()]
         return [permission() for permission in self.permission_classes]
+
+    @action(methods=['post'], detail=True, url_path='book_tour')
+    def book_tour(self, request, pk=None):
+        user = request.user
+        tour = self.get_object()
+        customer, created = Customer.objects.get_or_create(user_ptr_id=user.id)
+
+
+        num_adults = request.data.get('num_adults')
+        num_children = request.data.get('num_children')
+        date_depart = request.data.get('date_depart')
+
+        if not num_adults or not num_children:
+            return Response({'error': 'Number of adults and children must be provided'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            num_adults = int(num_adults)
+            num_children = int(num_children)
+        except ValueError:
+            return Response({'error': 'Invalid number of adults or children'}, status=status.HTTP_400_BAD_REQUEST)
+
+        total_price = (tour.price_adult * num_adults) + (tour.price_kid * num_children)
+
+        booking = Booking.objects.create(
+            customer=customer,
+            tour=tour,
+            num_adults=num_adults,
+            num_children=num_children,
+            total_price=total_price,
+            date_depart=date_depart,
+            status='pending'
+        )
+        booking.date_arrive = booking.calculate_return_date()
+        booking.save()
+
+        Ticket.objects.bulk_create([
+                                       Ticket(option='A', price=tour.price_adult, booking=booking,
+                                              category=tour.category) for _ in range(num_adults)
+                                   ] + [
+                                       Ticket(option='B', price=tour.price_kid, booking=booking, category=tour.category)
+                                       for _ in range(num_children)
+                                   ])
+
+        serializer = BookingSerializer(booking)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(methods=['post'], detail=True, url_path='comments')
     def add_comment(self, request, pk=None):
@@ -100,17 +147,22 @@ class TourDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             tours = Tour.objects.filter(destination__icontains=destination)
             serializer = TourSerializer(tours, many=True, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response({'error': 'Please provide a destination'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Hãy nhập thời gian đi hợp lệ'}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['get'], detail=False, url_path='search_by_date')
-    def search_by_date(self, request):
-        departure_date = request.query_params.get('departure_date')
-        if departure_date:
-            tours = Tour.objects.filter(departure_date__icontains=departure_date)
-            serializer = TourSerializer(tours, many=True, context={'request': request})
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response({'error': 'Please provide a departure date'}, status=status.HTTP_400_BAD_REQUEST)
+    @action(methods=['get'], detail=False, url_path='search_by_duration')
+    def search_by_duration(self, request):
+        duration = request.query_params.get('duration')
+        if not duration:
+            return Response({'error': 'Chưa nhập thông tin tra cứu'}, status=status.HTTP_400_BAD_REQUEST)
 
+        try:
+            category = Category.objects.get(name=duration)
+        except Category.DoesNotExist:
+            return Response({'error': 'No category found for the given duration'}, status=status.HTTP_404_NOT_FOUND)
+
+        tours = Tour.objects.filter(category=category)
+        serializer = TourSerializer(tours, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class NewDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     queryset = New.objects.filter(active=True)
@@ -203,42 +255,46 @@ class BookingViewSet(viewsets.ViewSet, generics.ListAPIView):
             return [permissions.IsAuthenticated()]
         return  self.permission_classes
 
+    # def create_booking(self, request):
+    #     data = request.data
+    #     serializer = BookingSerializer(data=data)
+    #     if serializer.is_valid():
+    #         booking = serializer.save(user=request.user)
+    #
+    #         # Tạo các ticket tương ứng
+    #         num_adults = data.get('adults', 0)
+    #         num_children = data.get('kids', 0)
+    #
+    #         for _ in range(num_adults):
+    #             Ticket.objects.create(
+    #                 option='A',
+    #                 price=booking.tour.price_adult,
+    #                 tour=booking.tour,
+    #                 booking=booking,
+    #                 user=request.user,
+    #                 date_arrive=booking.tour.arrival_date,
+    #                 date_depart=booking.tour.departure_date
+    #             )
+    #
+    #         for _ in range(num_children):
+    #             Ticket.objects.create(
+    #                 option='B',
+    #                 price=booking.tour.price_child,
+    #                 tour=booking.tour,
+    #                 booking=booking,
+    #                 user=request.user,
+    #                 date_arrive=booking.tour.arrival_date,
+    #                 date_depart=booking.tour.departure_date
+    #             )
+    #
+    #         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['post'], detail=True, url_path='add_tickets')
-    def add_tickets(self, request, pk=None):
-        booking = self.get_object()
-        tickets_data = request.data.get('tickets')
-        if not tickets_data:
-            return Response({'error': 'Thiếu thông tin vé'}, status=status.HTTP_400_BAD_REQUEST)
-
-        tickets = []
-        for ticket_data in tickets_data:
-            ticket_data['tour'] = booking.tour.id
-            ticket = Ticket.objects.create(**ticket_data, booking=booking)
-            tickets.append(ticket)
-
-        booking.status = 'pending'
-        booking.save()
-
-        return Response({'message': 'Vé đã được thêm vào đặt chỗ'}, status=status.HTTP_201_CREATED)
-
-    @action(methods=['post'], detail=True, url_path='confirm')
-    def confirm_booking(self, request, pk=None):
-        booking = self.get_object()
-        if booking.status != 'pending':
-            return Response({'error': 'Booking không ở trạng thái pending'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Giả sử thanh toán đã thành công, bạn cần tích hợp với hệ thống thanh toán thực tế.
-        booking.status = 'confirmed'
-        booking.save()
-
-        # Phát hành vé
-        for ticket in booking.tickets.all():
-            ticket.issued = True
-            ticket.save()
-
-        return Response({'message': 'Booking đã được xác nhận và vé đã được phát hành'}, status=status.HTTP_200_OK)
-
+    # @action(methods=['get'], detail=False, url_path='my_bookings')
+    # def my_bookings(self, request):
+    #     bookings = Booking.objects.filter(user=request.user)
+    #     serializer = BookingSerializer(bookings, many=True)
+    #     return Response(serializer.data)
 
 class CommentInTourViewSet(viewsets.ViewSet, generics.DestroyAPIView, generics.UpdateAPIView):
     queryset = CommentInTour.objects.all()

@@ -63,7 +63,7 @@ class TourSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tour
         fields = ['id', 'name', 'category', 'image', 'price_kid', 'price_adult', 'destination',
-                  'place', 'departure_date']
+                  'place']
 
 
 
@@ -150,12 +150,13 @@ class CustomerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Customer
-        fields = ['first_name', 'last_name', 'username', 'password', 'email', 'avatar']
+        fields = ['first_name', 'last_name', 'username', 'password', 'email', 'is_staff', 'avatar']
         extra_kwargs = {
             'password': {
                 'write_only': True
             }
         }
+
 
     def create(self, validated_data):
         if 'avatar' not in validated_data or not validated_data['avatar']:
@@ -184,18 +185,27 @@ class CommentInNewSerializer(serializers.ModelSerializer):
         fields = ['id', 'content', 'user']
 
 
-class BookingSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Booking
-        fields = ['id', 'customer', 'tour', 'create_date', 'status']
-        read_only_fields = ['id', 'customer', 'create_date', 'status']
-
-    def create(self, validated_data):
-        return Booking.objects.create(**validated_data)
-
 
 class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
-        fields = ['id', 'option', 'price', 'date_depart', 'date_arrive', 'user']
-        read_only_fields = ['id', 'booking', 'issued']
+        fields = ['id', 'option', 'price', 'booking']
+
+
+class BookingSerializer(serializers.ModelSerializer):
+    tickets = TicketSerializer(many=True)
+
+    class Meta:
+        model = Booking
+        fields = ['id', 'customer', 'tour', 'date_depart', 'date_arrive',
+                  'total_price', 'created_at', 'tickets', 'num_adults', 'num_children']
+
+    def create(self, validated_data):
+        tickets_data = validated_data.pop('tickets')
+        booking = Booking.objects.create(**validated_data)
+        for ticket_data in tickets_data:
+            Ticket.objects.create(booking=booking, **ticket_data)
+        return booking
+
+
+

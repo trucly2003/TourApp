@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser, Group
 from ckeditor.fields import RichTextField
@@ -63,22 +65,29 @@ class Tour(BaseModel):
     price_adult = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     tour_service = models.TextField(null=True)
     place = models.ManyToManyField('Place', related_name='places_tours')
-    departure_date = models.DateField(null=True)
+
 
 
 class Booking(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, null=True)
     tour = models.ForeignKey(Tour, on_delete=models.CASCADE, null=True)
-    adults = models.PositiveIntegerField(default=1)
-    kids = models.PositiveIntegerField(default=0)
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)
-    create_date = models.DateField(auto_now=True, null=True)
-    status = models.CharField(max_length=20, default='pending')
+    num_adults = models.PositiveIntegerField(null=True)
+    num_children = models.PositiveIntegerField(null=True)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    date_depart = models.DateField(null=True)
+    date_arrive = models.DateField(null=True)
+    status = models.CharField(max_length=20, choices=[('Pending', 'Pending'), ('Confirmed', 'Confirmed'), ('Cancelled', 'Cancelled')], default='Pending', null=True)
 
+    def calculate_return_date(self):
+        try:
+            nights = int(self.tour.category.name.split('N')[0])
+            days = int(self.tour.category.name.split('N')[1].split('Đ')[0])
+        except (IndexError, ValueError):
+            raise ValueError('Invalid category format')
 
-    def save(self, *args, **kwargs):
-        self.total_price = (self.adults * self.tour.price_adult) + (self.kids * self.tour.price_kid)
-        super().save(*args, **kwargs)
+        return_date = self.date_depart + timedelta(days=nights)
+        return return_date
 
     def __str__(self):
         return f"Booking {self.id} by {self.customer.username}"
@@ -102,12 +111,7 @@ class Ticket(BaseModel):
     option = models.CharField(max_length=1, choices=OPTIONS_CHOICES, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     category = models.ForeignKey(Category, on_delete=models.RESTRICT, null=True)
-    tour = models.ForeignKey(Tour, on_delete=models.CASCADE, null=True)
-    date_arrive = models.DateField(null=True)
-    date_depart = models.DateField(null=True)
-    user = models.ForeignKey('User', on_delete=models.CASCADE, null=True)
-    booking = models.ForeignKey('Booking', on_delete=models.CASCADE,null=True)
-    issued = models.BooleanField(default=False)
+    booking = models.ForeignKey('Booking', on_delete=models.CASCADE,null=True, related_name='tickets')
 
     def __str__(self):
         return f"Ticket {self.id} for Booking {self.booking.id}"
