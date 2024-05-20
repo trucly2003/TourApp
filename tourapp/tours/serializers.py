@@ -1,7 +1,7 @@
 import cloudinary
 from rest_framework import serializers
 from .models import (Category, Place, Ticket, Tour, User, CommentInTour,
-                     New, Like, Customer, Staff, CommentInNew)
+                     New, Like, Customer, Staff, CommentInNew, Rating, Booking)
 from cloudinary.models import CloudinaryField
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -29,10 +29,9 @@ class PlaceSerializer(serializers.ModelSerializer):
     def get_image(self, Place):
 
         if Place.name:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri('/static/%s' % Place.image.name)
-            return '/static/%s' % Place.image.name
+            public_id = Tour.image.public_id
+            cloudinary_url = cloudinary.CloudinaryImage(public_id).build_url(folder="imagesOfPlace")
+            return cloudinary_url
 
     class Meta:
         model = Place
@@ -61,11 +60,10 @@ class TourSerializer(serializers.ModelSerializer):
         return None
 
 
-
     class Meta:
         model = Tour
-        fields = ['id', 'name', 'category', 'image', 'price_kid', 'price_adult', 'arrival', 'departure',
-                  'place']
+        fields = ['id', 'name', 'category', 'image', 'price_kid', 'price_adult', 'destination',
+                  'place', 'departure_date']
 
 
 
@@ -73,6 +71,39 @@ class NewSerializer(serializers.ModelSerializer):
     class Meta:
         model = New
         fields = ['id', 'title', 'content']
+
+
+class RateSerializer(serializers.ModelSerializer):
+    has_rated = serializers.SerializerMethodField()
+    tour = TourSerializer()
+
+    def get_has_rated(self, Rating):
+        request = self.context.get('request')
+        if request.user.is_authenticated:
+            tour_id = self.context['request'].data.get('tour_id')
+            if tour_id:
+                return Rating.user.rating_set.filter(user=request.user).exists()
+            else:
+                return False
+        return False
+
+    class Meta:
+        model = Rating
+        fields = ['tour', 'user', 'has_rated', 'rate']
+
+
+
+class NewDetailSerializer(NewSerializer):
+    liked = serializers.SerializerMethodField()
+
+
+    def get_liked(self, New):
+        request = self.context.get('request')
+        if request.user.is_authenticated:
+            return  New.like_set.filter(active=True).exists()
+    class Meta:
+        model = New
+        fields = NewSerializer.Meta.fields + ['liked']
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -139,16 +170,32 @@ class CustomerSerializer(serializers.ModelSerializer):
 
 
 class CommentInTourSerializer(serializers.ModelSerializer):
-    customer = CustomerSerializer()
+    user = CustomerSerializer()
     class Meta:
         model = CommentInTour
-        fields = ['id', 'content', 'customer']
+        fields = ['id', 'content', 'user']
 
 
 class CommentInNewSerializer(serializers.ModelSerializer):
-    customer = CustomerSerializer()
+    user = CustomerSerializer()
 
     class Meta:
         model = CommentInNew
-        fields = ['id', 'content', 'customer']
+        fields = ['id', 'content', 'user']
 
+
+class BookingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Booking
+        fields = ['id', 'customer', 'tour', 'create_date', 'status']
+        read_only_fields = ['id', 'customer', 'create_date', 'status']
+
+    def create(self, validated_data):
+        return Booking.objects.create(**validated_data)
+
+
+class TicketSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ticket
+        fields = ['id', 'option', 'price', 'date_depart', 'date_arrive', 'user']
+        read_only_fields = ['id', 'booking', 'issued']

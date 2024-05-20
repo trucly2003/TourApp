@@ -56,23 +56,39 @@ class Place(BaseModel):
 class Tour(BaseModel):
     category = models.ForeignKey(Category, on_delete=models.RESTRICT, null=True)
     name = models.CharField(max_length=50, null=False)
+    destination = models.CharField(max_length=50, null=True)
     description = RichTextField()
     image = CloudinaryField('imagesOfTour', null=True)
     price_kid = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     price_adult = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     tour_service = models.TextField(null=True)
     place = models.ManyToManyField('Place', related_name='places_tours')
-    arrival = models.CharField(max_length=50, null=True)
-    departure = models.CharField(max_length=50, null=True)
+    departure_date = models.DateField(null=True)
 
+
+class Booking(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, null=True)
+    tour = models.ForeignKey(Tour, on_delete=models.CASCADE, null=True)
+    adults = models.PositiveIntegerField(default=1)
+    kids = models.PositiveIntegerField(default=0)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    create_date = models.DateField(auto_now=True, null=True)
+    status = models.CharField(max_length=20, default='pending')
+
+
+    def save(self, *args, **kwargs):
+        self.total_price = (self.adults * self.tour.price_adult) + (self.kids * self.tour.price_kid)
+        super().save(*args, **kwargs)
 
     def __str__(self):
-       return self.name
-
+        return f"Booking {self.id} by {self.customer.username}"
 
 class New(BaseModel):
     title = models.CharField(max_length=255, null=True)
-    content = RichTextField()
+    content = models.TextField()
+    date_post = models.DateField(auto_now_add=True, null=True)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    image = CloudinaryField('imagesOfNew', null=True)
 
     def __str__(self):
         return self.title
@@ -90,10 +106,11 @@ class Ticket(BaseModel):
     date_arrive = models.DateField(null=True)
     date_depart = models.DateField(null=True)
     user = models.ForeignKey('User', on_delete=models.CASCADE, null=True)
-    booking_date = models.DateField(null=True)
+    booking = models.ForeignKey('Booking', on_delete=models.CASCADE,null=True)
+    issued = models.BooleanField(default=False)
 
     def __str__(self):
-        return str(self.id)
+        return f"Ticket {self.id} for Booking {self.booking.id}"
 
 
 class Payment(BaseModel):
