@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from django.shortcuts import render
 from rest_framework import viewsets, generics, status, parsers, permissions, serializers
@@ -84,8 +84,14 @@ class TourDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             return Response({'error': 'Invalid number of adults or children'}, status=status.HTTP_400_BAD_REQUEST)
 
         total_price = (tour.price_adult * num_adults) + (tour.price_kid * num_children)
-        nights = int(tour.category.name.split('N')[0])
-        return_date = date_depart
+
+        try:
+            date_depart = datetime.strptime(date_depart, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        days = tour.category.get_number_of_days()
+        date_arrive = date_depart + timedelta(days=days - 1)
 
         booking = Booking.objects.create(
             customer=user,
@@ -94,7 +100,7 @@ class TourDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             num_children=num_children,
             total_price=total_price,
             date_depart=date_depart,
-            date_arrive=return_date,
+            date_arrive=date_arrive,
             status='pending'
         )
 

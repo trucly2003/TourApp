@@ -43,6 +43,13 @@ class BaseModel(models.Model):
 class Category(BaseModel):
     name = models.CharField(max_length=50, null=False)
 
+    def get_number_of_days_and_nights(self):
+        # Giả sử tên category có định dạng như "3N2Đ"
+        try:
+            days = int(self.name.split('N')[0])
+            return days
+        except (ValueError, AttributeError, IndexError):
+            return 0 # Trả về 0 nếu có lỗi trong quá trình trích xuất
     def __str__(self):
         return self.name
 
