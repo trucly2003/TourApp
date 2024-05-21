@@ -29,7 +29,7 @@ class PlaceSerializer(serializers.ModelSerializer):
     def get_image(self, Place):
 
         if Place.name:
-            public_id = Tour.image.public_id
+            public_id = Place.image.public_id
             cloudinary_url = cloudinary.CloudinaryImage(public_id).build_url(folder="imagesOfPlace")
             return cloudinary_url
 
@@ -150,7 +150,7 @@ class CustomerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Customer
-        fields = ['first_name', 'last_name', 'username', 'password', 'email', 'is_staff', 'avatar']
+        fields = ['first_name', 'last_name', 'username', 'password', 'email', 'is_staff', 'avatar', 'role']
         extra_kwargs = {
             'password': {
                 'write_only': True
@@ -197,7 +197,7 @@ class BookingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Booking
-        fields = ['id', 'customer', 'tour', 'date_depart', 'date_arrive',
+        fields = ['id', 'customer', 'tour', 'date_depart', 'date_arrive', 'status',
                   'total_price', 'created_at', 'tickets', 'num_adults', 'num_children']
 
     def create(self, validated_data):

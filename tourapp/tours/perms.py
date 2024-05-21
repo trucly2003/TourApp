@@ -8,3 +8,11 @@ class OwnerAuthenticated(permissions.IsAuthenticated):
 class IsSuperUser(BasePermission):
     def has_permission(self, request, view):    
         return request.user.is_superuser
+
+class IsCustomer(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and hasattr(request.user, 'customer')
+
+class IsStaff(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and hasattr(request.user, 'staff')

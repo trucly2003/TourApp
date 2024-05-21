@@ -69,7 +69,7 @@ class Tour(BaseModel):
 
 
 class Booking(models.Model):
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, null=True)
+    customer = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     tour = models.ForeignKey(Tour, on_delete=models.CASCADE, null=True)
     num_adults = models.PositiveIntegerField(null=True)
     num_children = models.PositiveIntegerField(null=True)
@@ -79,15 +79,6 @@ class Booking(models.Model):
     date_arrive = models.DateField(null=True)
     status = models.CharField(max_length=20, choices=[('Pending', 'Pending'), ('Confirmed', 'Confirmed'), ('Cancelled', 'Cancelled')], default='Pending', null=True)
 
-    def calculate_return_date(self):
-        try:
-            nights = int(self.tour.category.name.split('N')[0])
-            days = int(self.tour.category.name.split('N')[1].split('Đ')[0])
-        except (IndexError, ValueError):
-            raise ValueError('Invalid category format')
-
-        return_date = self.date_depart + timedelta(days=nights)
-        return return_date
 
     def __str__(self):
         return f"Booking {self.id} by {self.customer.username}"

@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.shortcuts import render
 from rest_framework import viewsets, generics, status, parsers, permissions, serializers
 from rest_framework.generics import get_object_or_404
@@ -8,7 +10,7 @@ from .serializers import (CategorySerializer, TourSerializer, PlaceSerializer, U
                           NewSerializer, StaffSerializer, CustomerSerializer, NewDetailSerializer)
 from .paginators import TourPaginator
 from  rest_framework.decorators import action
-from .perms import OwnerAuthenticated, IsSuperUser
+from .perms import OwnerAuthenticated, IsCustomer, IsStaff
 
 
 
@@ -45,6 +47,7 @@ class TourViewSet(viewsets.ViewSet, generics.ListAPIView):
 class PlaceViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Place.objects.filter(active=True).all()
     serializer_class = PlaceSerializer
+    permission_classes = [permissions.AllowAny]
 
 
 class TourDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
@@ -53,15 +56,17 @@ class TourDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
-        if self.action in ['add_comment', 'rate', 'book_tour']:
+        if self.action in ['add_comment', 'rate']:
             return [permissions.IsAuthenticated()]
+        if self.action.__eq__('book_tour'):
+            return [IsCustomer()]
         return [permission() for permission in self.permission_classes]
+
 
     @action(methods=['post'], detail=True, url_path='book_tour')
     def book_tour(self, request, pk=None):
         user = request.user
         tour = self.get_object()
-        customer, created = Customer.objects.get_or_create(user_ptr_id=user.id)
 
 
         num_adults = request.data.get('num_adults')
@@ -79,18 +84,19 @@ class TourDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             return Response({'error': 'Invalid number of adults or children'}, status=status.HTTP_400_BAD_REQUEST)
 
         total_price = (tour.price_adult * num_adults) + (tour.price_kid * num_children)
+        nights = int(tour.category.name.split('N')[0])
+        return_date = date_depart
 
         booking = Booking.objects.create(
-            customer=customer,
+            customer=user,
             tour=tour,
             num_adults=num_adults,
             num_children=num_children,
             total_price=total_price,
             date_depart=date_depart,
+            date_arrive=return_date,
             status='pending'
         )
-        booking.date_arrive = booking.calculate_return_date()
-        booking.save()
 
         Ticket.objects.bulk_create([
                                        Ticket(option='A', price=tour.price_adult, booking=booking,
@@ -164,6 +170,9 @@ class TourDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         serializer = TourSerializer(tours, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+
+
 class NewDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     queryset = New.objects.filter(active=True)
     serializer_class = NewDetailSerializer
@@ -222,7 +231,8 @@ class UserViewSet(viewsets.ViewSet):
     def get_permissions(self):
         if self.action in ['current_user']:
             return [permissions.IsAuthenticated()]
-
+        if self.action.__eq__('register_customer'):
+            return [permissions.IsAdminUser() or IsStaff()]
         return [permissions.AllowAny()]
 
 
@@ -245,56 +255,8 @@ class UserViewSet(viewsets.ViewSet):
 class BookingViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
-    permission_classes = [permissions.AllowAny()]
+    permission_classes = [IsCustomer]
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-    def get_permissions(self):
-        if self.action in ['add_tickets', 'confirm']:
-            return [permissions.IsAuthenticated()]
-        return  self.permission_classes
-
-    # def create_booking(self, request):
-    #     data = request.data
-    #     serializer = BookingSerializer(data=data)
-    #     if serializer.is_valid():
-    #         booking = serializer.save(user=request.user)
-    #
-    #         # Tạo các ticket tương ứng
-    #         num_adults = data.get('adults', 0)
-    #         num_children = data.get('kids', 0)
-    #
-    #         for _ in range(num_adults):
-    #             Ticket.objects.create(
-    #                 option='A',
-    #                 price=booking.tour.price_adult,
-    #                 tour=booking.tour,
-    #                 booking=booking,
-    #                 user=request.user,
-    #                 date_arrive=booking.tour.arrival_date,
-    #                 date_depart=booking.tour.departure_date
-    #             )
-    #
-    #         for _ in range(num_children):
-    #             Ticket.objects.create(
-    #                 option='B',
-    #                 price=booking.tour.price_child,
-    #                 tour=booking.tour,
-    #                 booking=booking,
-    #                 user=request.user,
-    #                 date_arrive=booking.tour.arrival_date,
-    #                 date_depart=booking.tour.departure_date
-    #             )
-    #
-    #         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    # @action(methods=['get'], detail=False, url_path='my_bookings')
-    # def my_bookings(self, request):
-    #     bookings = Booking.objects.filter(user=request.user)
-    #     serializer = BookingSerializer(bookings, many=True)
-    #     return Response(serializer.data)
 
 class CommentInTourViewSet(viewsets.ViewSet, generics.DestroyAPIView, generics.UpdateAPIView):
     queryset = CommentInTour.objects.all()
