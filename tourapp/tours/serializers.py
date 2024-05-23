@@ -38,10 +38,6 @@ class PlaceSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'image']
 
 
-class NewSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = New
-        fields = ['']
 
 
 
@@ -68,9 +64,19 @@ class TourSerializer(serializers.ModelSerializer):
 
 
 class NewSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField(source='image')
+
+
+    def get_image(self, New):
+        if New.image:
+            public_id = New.image.public_id
+            cloudinary_url = cloudinary.CloudinaryImage(public_id).build_url(folder="imagesOfNew")
+            return cloudinary_url
+
+        return None
     class Meta:
         model = New
-        fields = ['id', 'title', 'content']
+        fields = ['id', 'title', 'content', 'image']
 
 
 class RateSerializer(serializers.ModelSerializer):

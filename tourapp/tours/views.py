@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime
+from typing import re
 
 from django.shortcuts import render
 from rest_framework import viewsets, generics, status, parsers, permissions, serializers
@@ -74,14 +75,14 @@ class TourDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         date_depart = request.data.get('date_depart')
 
         if not num_adults or not num_children:
-            return Response({'error': 'Number of adults and children must be provided'},
+            return Response({'error': 'Chưa nhập số lượng người lớn và trẻ em'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         try:
             num_adults = int(num_adults)
             num_children = int(num_children)
         except ValueError:
-            return Response({'error': 'Invalid number of adults or children'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Nhập không hợp lệ. Hãy nhập số nguyên'}, status=status.HTTP_400_BAD_REQUEST)
 
         total_price = (tour.price_adult * num_adults) + (tour.price_kid * num_children)
 
@@ -90,8 +91,18 @@ class TourDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         except ValueError:
             return Response({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        days = tour.category.get_number_of_days()
-        date_arrive = date_depart + timedelta(days=days - 1)
+        try:
+            num_days_part = tour.category.name.split('N')[0]
+            num_nights_part = tour.category.name.split('N')[1].split('Đ')[0]
+            num_days = int(num_days_part)
+            num_nights = int(num_nights_part)
+        except (IndexError, ValueError):
+            raise ValueError("Định dạng chuỗi thời gian không hợp lệ. Vui lòng nhập theo định dạng '3N2Đ'.")
+
+
+        total_days = num_nights + 1
+        date = date_depart + timedelta(days=total_days)
+        date_arrive = date.strftime('%Y-%m-%d')
 
         booking = Booking.objects.create(
             customer=user,
@@ -170,13 +181,17 @@ class TourDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         try:
             category = Category.objects.get(name=duration)
         except Category.DoesNotExist:
-            return Response({'error': 'No category found for the given duration'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
         tours = Tour.objects.filter(category=category)
         serializer = TourSerializer(tours, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class NewViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = New.objects.filter(active=True)
+    serializer_class = NewSerializer
+    permission_classes = [permissions.AllowAny]
 
 
 class NewDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
