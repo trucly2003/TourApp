@@ -48,7 +48,7 @@ class Category(BaseModel):
 class Place(BaseModel):
     name = models.CharField(max_length=50, null=False)
     description = RichTextField()
-    image = CloudinaryField('imagesOfPlace', null=True)
+    image = CloudinaryField('image', folder='imagesOfPlace', null=True)
 
     def __str__(self):
         return self.name
@@ -58,7 +58,7 @@ class Tour(BaseModel):
     name = models.CharField(max_length=50, null=False)
     destination = models.CharField(max_length=50, null=True)
     description = RichTextField()
-    image = CloudinaryField('imagesOfTour', null=True)
+    image = CloudinaryField('image', folder='imagesOfTour', null=True)
     price_kid = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     price_adult = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     tour_service = models.TextField(null=True)
@@ -86,7 +86,7 @@ class New(BaseModel):
     content = models.TextField()
     date_post = models.DateField(auto_now_add=True, null=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
-    image = CloudinaryField('imagesOfNew', null=True)
+    image = CloudinaryField('image', folder='imagesOfNew''imagesOfNew', null=True)
 
     def __str__(self):
         return self.title

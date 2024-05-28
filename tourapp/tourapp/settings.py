@@ -48,11 +48,34 @@ INSTALLED_APPS = [
 
 import cloudinary
 
+CLOUDINARY = {
+    'cloud_name': 'dodo9rlbi',
+    'api_key': '499936591477531',
+    'api_secret': 'RcbpgEb6mxsJWLAkkBWSqsqKgEA'
+}
+
 cloudinary.config(
-    cloud_name="dodo9rlbi",
-    api_key="499936591477531",
-    api_secret="RcbpgEb6mxsJWLAkkBWSqsqKgEA"
+    cloud_name=CLOUDINARY['cloud_name'],
+    api_key=CLOUDINARY['api_key'],
+    api_secret=CLOUDINARY['api_secret']
 )
+
+CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
+CKEDITOR_RESTRICT_BY_USER = True
+CKEDITOR_BROWSE_SHOW_DIRS = True
+
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'height': 300,
+        'width': '100%',
+        'extraPlugins': ','.join([
+            'uploadimage',  # Plugin upload image
+        ]),
+        'filebrowserUploadUrl': '/ckeditor/upload/',
+    },
+}
+
 
 import pymysql
 pymysql.install_as_MySQLdb()
@@ -154,7 +177,7 @@ STATIC_URL = 'static/'
 #DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # MEDIA_ROOT = '%s/tours/static/' % BASE_DIR
-CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
+CKEDITOR_UPLOAD_PATH = cloudinary.CloudinaryImage("image")
 
 CLIENT_ID = 'FrqpJ92OuifjjNw51E3zoqFkytxKlEtYv9Dga3wH'
 CLIENT_SECRET = 'XR74VNODyTR5ays4CQ6Fd5t90b2hlnqgzhexyo8yzJzJYzNGHVeTXael6w4eeadxjfX8KPcER3Kv6cOJIclGWN8YWLlqReOV0xK1CPYryCVdlEMVihT0CuRJyNiIBuB1'

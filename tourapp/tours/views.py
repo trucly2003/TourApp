@@ -1,6 +1,8 @@
 from datetime import timedelta, datetime
-from typing import re
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import cloudinary.uploader
 from django.shortcuts import render
 from rest_framework import viewsets, generics, status, parsers, permissions, serializers
 from rest_framework.generics import get_object_or_404
@@ -13,7 +15,16 @@ from .paginators import TourPaginator
 from  rest_framework.decorators import action
 from .perms import OwnerAuthenticated, IsCustomer, IsStaff
 
-
+@csrf_exempt
+def upload_image(request):
+    if request.method == 'POST' and request.FILES.get('upload'):
+        image = request.FILES['upload']
+        upload_result = cloudinary.uploader.upload(image)
+        return JsonResponse({
+            'uploaded': True,
+            'url': upload_result['secure_url']
+        })
+    return JsonResponse({'uploaded': False})
 
 class CategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Category.objects.all()
