@@ -100,7 +100,7 @@ class TourDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         try:
             date_depart = datetime.strptime(date_depart, '%Y-%m-%d').date()
         except ValueError:
-            return Response({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Nhap sai format. Dùng YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             num_days_part = tour.category.name.split('N')[0]
@@ -228,7 +228,7 @@ class NewDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
     @action(methods=['post'], url_path='comments', detail=True)
     def add_comment(self, request, pk):
-        c = CommentInTour.objects.create(user=request.user, tour=self.get_object(), content=request.data.get('content'))
+        c = CommentInNew.objects.create(user=request.user, new=self.get_object(), content=request.data.get('content'))
 
         return Response(CommentInTourSerializer(c).data, status=status.HTTP_201_CREATED)
 
